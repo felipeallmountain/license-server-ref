@@ -18,6 +18,7 @@
   },
   "homepage": "https://github.com/felipeallmountain/license-server-ref#readme",
   "dependencies": {
-    "express": "^4.14.0"
+    "express": "^4.14.0",
+    "github-webhook-handler": "^0.6.0"
   }
 }
