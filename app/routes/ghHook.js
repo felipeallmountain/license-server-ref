@@ -7,9 +7,7 @@ var Projects = require('../models/projects');
 module.exports = function(app, settings) {
 
 	var route = '/git_hook';
-
-	// TO-DO: set secret in server environment
-	var handler = createHandler({'path': route, 'secret': 'githook'});
+	var handler = createHandler({'path': route, 'secret': settings.gitToken});
 
 	app.post(route, function(req, res) {
 		handler(req, res, function(err) {
@@ -20,7 +18,7 @@ module.exports = function(app, settings) {
 
 	handler.on('repository', function(evt) {
 
-		var projects = new Projects();
+		var projects = new Projects(settings);
 		projects.getFromGithub(function(err, repos) {
 			if(err) {
 				console.log('error!!!');
