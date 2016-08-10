@@ -28,18 +28,6 @@ module.exports = function(app, settings) {
 				projects.saveToCache();
 			}
 		});
-
-
-
-
-		//var evtObj = !evt.payload ? evt : evt.payload;
-
-		/*console.log('create Event!!! ///////////////////////////////////////////////////////');
-		
-		console.log('ACTION ====', evtObj.action);
-		console.log('REPO ====', evtObj.repository.full_name);
-		
-		console.log('-');*/
 	});
 
 	handler.on('pull_request', function(evt) {
