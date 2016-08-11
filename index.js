@@ -9,11 +9,15 @@ module.exports = function(initialConfig) {
 
 	var settings = new Settings();
 
+	app.get('/', function(req, res, err) {
+		res.json('LICENSE SERVER!!');
+	});
+
 	require('./app/routes/ghHook')(app, settings);
 	require('./app/routes/apiProjects')(app, settings);
 
-	app.listen(3000, function() {
-		console.log('Server in localhost:3000');
+	app.listen(settings.serverPort, function() {
+		console.log('---> Server in localhost:', settings.serverPort);
 	});
 };
 

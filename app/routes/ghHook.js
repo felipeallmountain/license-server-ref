@@ -17,13 +17,11 @@ module.exports = function(app, settings) {
 	});
 
 	handler.on('repository', function(evt) {
-
+		
 		var projects = new Projects(settings);
 		projects.getFromGithub(function(err, repos) {
 			if(err) {
 				console.log('error!!!');
-			} else {
-				projects.saveToCache();
 			}
 		});
 	});

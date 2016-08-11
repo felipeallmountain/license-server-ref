@@ -7,12 +7,10 @@ module.exports = function(app, settings) {
 		var projects = new Projects(settings);
 
 		if(projects.isCached()) {
-			console.log('cacchee', res);
 			projects.getFromCache(res);
 		} else {
 			projects.getFromGithub(function(err, repos) {
 				res.json(repos);
-				projects.saveToCache();
 			});
 		}
 	});

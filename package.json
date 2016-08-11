@@ -23,6 +23,7 @@
     "gh-api-stream": "^1.0.3",
     "github-webhook-handler": "^0.6.0",
     "lodash": "^4.14.2",
+    "rimraf": "^2.5.4",
     "throng": "^4.0.0"
   }
 }
