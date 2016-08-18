@@ -3,13 +3,14 @@
 var createHandler = require('github-webhook-handler');
 
 var Projects = require('../models/projects');
+var PackageJson = require('../models/packageJson');
 
 module.exports = function(app, settings) {
 
 	var route = '/git_hook';
-
-	// TO-DO: set secret in server environment
-	var handler = createHandler({'path': route, 'secret': 'githook'});
+	var handler = createHandler({'path': route, 'secret': settings.gitToken});
+	var projects = new Projects(settings);
+	var packageJson = new PackageJson(settings);
 
 	app.post(route, function(req, res) {
 		handler(req, res, function(err) {
@@ -18,14 +19,12 @@ module.exports = function(app, settings) {
 		});
 	});
 
-	handler.on('repository', function(evt) {
-
-		var projects = new Projects();
+	handler.on('repository', function() {
 		projects.getFromGithub(function(err, repos) {
 			if(err) {
 				console.log('error!!!');
 			} else {
-				projects.saveToCache();
+				console.log('repos!!', repos);
 			}
 		});
 	});
@@ -33,9 +32,9 @@ module.exports = function(app, settings) {
 	handler.on('pull_request', function(evt) {
 		var evtObj = !evt.payload ? evt : evt.payload;
 
-		console.log('Pull Request Event!!!! ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^');
-		console.log('ACTION ===', evtObj.action);
-		console.log('WAS MERGED ===', evtObj.pull_request.merged);
-		console.log('|||||');
+		if(evtObj.action === 'closed' && evtObj.pull_request.merged === true) {
+			packageJson.getProjectPackage(evtObj.repository.name);
+		}
+
 	});
 };
