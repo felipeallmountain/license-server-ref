@@ -17,7 +17,7 @@ module.exports = function(initialConfig) {
 	require('./app/routes/apiProjects')(app, settings);
 
 	app.listen(settings.serverPort, function() {
-		console.log('---> Server in localhost:', settings.serverPort);
+		console.log('---> Server running in:', settings.serverPort);
 	});
 };
 

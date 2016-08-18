@@ -6,10 +6,15 @@ var api = require('gh-api-stream');
 var diff = require('lodash/difference');
 var pull = require('lodash/pull');
 var rimraf = require('rimraf');
+var promise = require('bluebird');
+
+var PackageJson = require('./packageJson.js');
 
 module.exports = function(settings) {
 	var projRepos;
 	var cachedFile = path.join(settings.cachePath, 'repos.json');
+
+	var packageJson = new PackageJson(settings);
 
 
 	this.isCached = function() {
@@ -32,11 +37,9 @@ module.exports = function(settings) {
 		var request = api('/orgs/felipeorganization/repos');
 
 		request.on('data', function(response) {
-			var projs = response.map(function(repo) {
+			projRepos = response.map(function(repo) {
 				return repo.name;
 			});
-
-			projRepos = projs;
 		});
 
 		request.on('end', function() {
@@ -58,29 +61,54 @@ module.exports = function(settings) {
 			cachedFolders = !err ? files : [];
 			exclusionFolders = pull(diff(cachedFolders, projRepos), 'repos.json');
 
-			modifyProjectDirectories(exclusionFolders, false);
-			modifyProjectDirectories(projRepos, true);
+			modifyList(exclusionFolders, removeFolder)
+				.then(function() {
+					return modifyList(projRepos, createFolder);
+				})
+				.then(function(createdFolders) {
+					return modifyList(createdFolders, packageJson.getPackageJson);
+				})
+				.then(function(packageName) {
+					return modifyList(pull(packageName, null), packageJson.savePackageJson);
+				});
 		});
 	}
 
-	function modifyProjectDirectories(list, create) {
-		list.forEach(function(proj) {
-			var projFolder = path.join(settings.cachePath, proj);
-			if(create) {
-				if(!fs.existsSync(projFolder)) {
-					fs.mkdir(projFolder, function(err) {
-						if(err) {
-							console.log('Error Creating Folder', err);
-						}
-					});
+	function modifyList(list, method) {
+		return promise.map(list, function(proj) {
+			return method(proj)
+				.catch(function() {
+					return null;
+				});
+		});
+	}
+
+	function removeFolder(proj) {
+		var projectFolder = path.join(settings.cachePath, proj);
+
+		return new promise(function(resolve, reject) {
+			rimraf(projectFolder, function(err) {
+				if(err) {
+					reject(err);
+				} else {
+					resolve(proj);
 				}
-			} else {
-				rimraf(projFolder, function(err) {
+			});
+		});
+	}
+
+	function createFolder(proj) {
+		var projectFolder = path.join(settings.cachePath, proj);
+
+		return new promise(function(resolve, reject) {
+			if(!fs.existsSync(projectFolder)) {
+				fs.mkdir(projectFolder, function(err) {
 					if(err) {
-						console.log('Error Removing Folder', err);
+						reject(err);
+					} else {
+						resolve(proj);
 					}
 				});
-
 			}
 		});
 	}
