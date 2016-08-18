@@ -8,4 +8,5 @@ module.exports = function(initial) {
 	this.gitToken = initial.gitToken || process.env.GH_TOKEN;
 	this.cachePath = initial.cachePath || path.join(process.cwd(), 'cache');
 	this.serverPort = initial.serverPort || process.env.PORT || 3000;
+	this.json = initial.json || process.env.json || true;
 };
