@@ -9,10 +9,11 @@ module.exports = function(settings) {
 
 	this.execInstall = function(proj) {
 		var projectFolder = path.join(settings.cachePath, proj);
-		console.log('INSTALLING IN FOLDER: ', projectFolder);
+		console.log('EXECUTING NPM INSTALL');
 		exec('npm install', {cwd: projectFolder, env: process.env}, function(error, stdout, stderr) {
 			if(error) {
 				console.error('NPM install error:', error);
+				deleteModulesFolder(projectFolder);
 				return;
 			}
 
@@ -27,19 +28,21 @@ module.exports = function(settings) {
 		});
 	};
 
-	function saveDependenciesTree(tree, projectFolder) {
-		console.log('SAVING TREE!!!');
-		var dependencyPath = path.join(projectFolder, 'dependencies.json');
+	function deleteModulesFolder(projectFolder) {
 		var modulesFolder = path.join(projectFolder, 'node_modules');
+		rimraf(modulesFolder, function(err) {
+			if(err) {
+				console.error('error deleting', modulesFolder);
+			} else {
+				console.log('node_modules successfully deleted!!!');
+			}
+		});
+	}
+
+	function saveDependenciesTree(tree, projectFolder) {
+		var dependencyPath = path.join(projectFolder, 'dependencies.json');
 		fs.writeFile(dependencyPath, tree, function() {
-			rimraf(modulesFolder, function(err) {
-				if(err) {
-					console.log('error deleting', modulesFolder);
-				} else {
-					console.log('modules deleted!!');
-				}
-			});
-			
+			deleteModulesFolder(projectFolder);			
 		});
 		
 	}

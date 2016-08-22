@@ -5,6 +5,8 @@ var fs = require('fs');
 var path = require('path');
 var promise = require('bluebird');
 var isEqual = require('lodash/isEqual');
+var omitBy = require('lodash/omitBy');
+var omit = require('lodash/omit');
 var NpmInstall = require('./npmInstall');
 
 module.exports = function(settings) {
@@ -30,18 +32,23 @@ module.exports = function(settings) {
 	};
 
 	this.savePackageJson = function(proj) {
-		return new promise(function(resolve) {
+		return new promise(function(resolve, reject) {
 			var projectPackage = path.join(settings.cachePath, proj.name, 'package.json');
-			fs.writeFile(projectPackage, JSON.stringify(proj), function() {
-				resolve('success');
+			var filteredProject = removeLocalAndDevDependencies(proj);
+			fs.writeFile(projectPackage, JSON.stringify(filteredProject), function(err) {
+				if(err) {
+					reject(err);
+				} else {
+					resolve('success');
+				}				
 			});
 		});
 	};
 
-	function checkLocalPackage(pack) {
+	function checkLocalPackage(projectPackage) {
 		return new promise(function(resolve, reject) {
-			if(fs.existsSync(pack)) {
-				fs.readFile(pack, function(err, data) {
+			if(fs.existsSync(projectPackage)) {
+				fs.readFile(projectPackage, function(err, data) {
 					if(err) {
 						reject(err);
 					} else {
@@ -55,11 +62,24 @@ module.exports = function(settings) {
 	}
 
 	function comparePackages(remotePackage, cachePackage) {
-		var dependenciesAreTheSame = isEqual(remotePackage.dependencies, cachePackage.dependencies);
-		if(!dependenciesAreTheSame) {
-			var npmInstall = new NpmInstall(settings);
-			npmInstall.execInstall(remotePackage.name);
+		if(remotePackage.dependencies && cachePackage.dependencies) {
+			var dependenciesAreTheSame = isEqual(remotePackage.dependencies, cachePackage.dependencies);
+			console.log('DEPENDENCIES ARE THE SAME!!', dependenciesAreTheSame);
+			if(!dependenciesAreTheSame) {
+				var npmInstall = new NpmInstall(settings);
+				npmInstall.execInstall(remotePackage.name);
+			}
 		}
+	}
+
+	function removeLocalAndDevDependencies(pack) {
+		var newpack = omit(pack, ['devDependencies', 'scripts']);
+
+		newpack.dependencies = omitBy(newpack.dependencies, function(val) {
+			return val.match(/(file\:)((\.\.?\/)+)?(\w+\/?)+((\.|\#)\w+)?/ig);
+		});
+
+		return newpack;
 	}
 
 	this.getProjectPackage = function(proj) {
@@ -70,14 +90,17 @@ module.exports = function(settings) {
 
 		self.getPackageJson(proj)
 			.then(function(pack) {
-				remotePackage = pack;
+				console.log('package.json fetched!!!');
+				remotePackage = removeLocalAndDevDependencies(pack);
 				return checkLocalPackage(projectPackage);
 			})
 			.then(function(pack) {
+				console.log('local package checked!!');
 				cachePackage = pack;
 				return self.savePackageJson(remotePackage);
 			})
 			.then(function() {
+				console.log('new package.json saved!!!!');
 				comparePackages(remotePackage, cachePackage);
 			}).catch(function(err) {
 				console.log('error!!', err);
